@@ -48,7 +48,7 @@ struct OtherData
     OtherData* child;
     OtherData* sibling;
     OtherData() : color(), velocity(), acceleration(), life(1.0), decay(0.1),
-        parent(nullptr), child(nullptr), sibling(nullptr) { }
+                  parent(nullptr), child(nullptr), sibling(nullptr) { }
 };
 
 // =======================================================================
@@ -134,32 +134,22 @@ public:
     Opacity* opacity = nullptr;
 };
 
-template<typename T>
+template<const char*>
 class DOPShape {};
 
-struct Triangle {
-    float sharpness = 0.0f;
-};
-struct Circle {
-    float radius = 1.0f;
-};
-struct Rectangle {
-    float width = 1.0, height = 1.0;
-};
-struct Capsule {
-    float width = 1.0, height = 1.0, radius = 1.0;
-};
-
+constexpr const char CIRCLE[] = "CIRCLE";
+constexpr const char TRIANGLE[] = "TRIANGLE";
+constexpr const char RECTANGLE[] = "RECTANGLE";
+constexpr const char CAPSULE[] = "CAPSULE";
 
 template<>
-class DOPShape<Circle> {
-    Circle t;
+class DOPShape<CIRCLE> {
+    float radius = 1.0f;
 public:
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& radius= t.radius;
         position.x += radius * opacity + rotation.w * rotation.x;
         position.y += radius * opacity + rotation.w * rotation.y;
         position.z += radius * opacity + rotation.w * rotation.z;
@@ -169,14 +159,13 @@ public:
 };
 
 template<>
-class DOPShape<Triangle> {
-    Triangle t;
+class DOPShape<TRIANGLE> {
+    float sharpness = 1.0;
 public:
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& sharpness = t.sharpness;
         position.x -= sharpness * opacity + rotation.w * rotation.x;
         position.y -= sharpness * opacity + rotation.w * rotation.y;
         position.z -= sharpness * opacity + rotation.w * rotation.z;
@@ -186,16 +175,13 @@ public:
 };
 
 template<>
-class DOPShape<Rectangle> {
-    Rectangle t;
+class DOPShape<RECTANGLE> {
+    float width = 1.0, height = 1.0;
 public:
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& width = t.width;
-        auto& height = t.height;
-
         position.x -= width * height * opacity + rotation.w * rotation.x;
         position.y -= width * height * opacity + rotation.w * rotation.y;
         position.z -= width * height * opacity + rotation.w * rotation.z;
@@ -206,17 +192,13 @@ public:
 };
 
 template<>
-class DOPShape<Capsule> {
-    Capsule t;
+class DOPShape<CAPSULE> {
+    float width = 1.0, height = 1.0, radius = 1.0;
 public:
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& width = t.width;
-        auto& height = t.height;
-        auto& radius= t.radius;
-
         position.x -= width * height * opacity + rotation.w * rotation.x;
         position.y -= width * height * opacity + rotation.w * rotation.y;
         position.z -= width * height * opacity + rotation.w * rotation.z;
@@ -227,7 +209,7 @@ public:
     }
 };
 
-template<typename T>
+template<const char* T>
 inline void draw(DOPShape<T>& shape, CoupledData& data)
 {
     shape.draw(data);  // compile-time polymorphism
@@ -292,11 +274,11 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
     auto* vArray = new Valid[N*4];
     for (size_t i = 0; i < N*4; i++)
         vArray[i].valid = ((rand() % 2) == 0);
-    // TODO: auto* array = new Shape[N*4];  // class DOPShape<T> : public Shape
-    auto* CArray = new DOPShape<Circle>[N];
-    auto* TArray = new DOPShape<Triangle>[N];
-    auto* RArray = new DOPShape<Rectangle>[N];
-    auto* PArray = new DOPShape<Capsule>[N];
+
+    auto* CArray = new DOPShape<CIRCLE>[N];
+    auto* TArray = new DOPShape<TRIANGLE>[N];
+    auto* RArray = new DOPShape<RECTANGLE>[N];
+    auto* PArray = new DOPShape<CAPSULE>[N];
     // other data:
     auto* otherDatArray = new OtherData[N * 4];
 
