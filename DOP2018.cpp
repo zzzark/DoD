@@ -135,31 +135,22 @@ public:
 };
 
 template<typename T>
-class DOPShape {};
-
-struct Triangle {
-    float sharpness = 0.0f;
-};
-struct Circle {
-    float radius = 1.0f;
-};
-struct Rectangle {
-    float width = 1.0, height = 1.0;
-};
-struct Capsule {
-    float width = 1.0, height = 1.0, radius = 1.0;
-};
-
-
-template<>
-class DOPShape<Circle> {
-    Circle t;
+class DOPShape {
 public:
+    void draw(CoupledData& data) {
+        static_cast<T*>(this)->draw(data);
+    };
+};
+
+
+class DOPCircle : public DOPShape<DOPCircle> {
+    float radius = 1.0f;
+public:
+    using DOPShape<DOPCircle>::draw;
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& radius= t.radius;
         position.x += radius * opacity + rotation.w * rotation.x;
         position.y += radius * opacity + rotation.w * rotation.y;
         position.z += radius * opacity + rotation.w * rotation.z;
@@ -168,15 +159,14 @@ public:
     }
 };
 
-template<>
-class DOPShape<Triangle> {
-    Triangle t;
+class DOPTriangle : public DOPShape<DOPTriangle> {
+    float sharpness = 0.0f;
 public:
+    using DOPShape<DOPTriangle>::draw;
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& sharpness = t.sharpness;
         position.x -= sharpness * opacity + rotation.w * rotation.x;
         position.y -= sharpness * opacity + rotation.w * rotation.y;
         position.z -= sharpness * opacity + rotation.w * rotation.z;
@@ -185,17 +175,14 @@ public:
     }
 };
 
-template<>
-class DOPShape<Rectangle> {
-    Rectangle t;
+class DOPRectangle: public DOPShape<DOPRectangle> {
+    float width = 1.0, height = 1.0;
 public:
+    using DOPShape<DOPRectangle>::draw;
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& width = t.width;
-        auto& height = t.height;
-
         position.x -= width * height * opacity + rotation.w * rotation.x;
         position.y -= width * height * opacity + rotation.w * rotation.y;
         position.z -= width * height * opacity + rotation.w * rotation.z;
@@ -205,18 +192,14 @@ public:
     }
 };
 
-template<>
-class DOPShape<Capsule> {
-    Capsule t;
+class DOPCapsule : public DOPShape<DOPCapsule> {
+    float width = 1.0, height = 1.0, radius = 1.0;
 public:
+    using DOPShape<DOPCapsule>::draw;
     void draw(CoupledData& data) {
         auto& position = *data.position;
         auto& rotation = *data.rotation;
         auto& opacity = (*data.opacity).opacity;
-        auto& width = t.width;
-        auto& height = t.height;
-        auto& radius= t.radius;
-
         position.x -= width * height * opacity + rotation.w * rotation.x;
         position.y -= width * height * opacity + rotation.w * rotation.y;
         position.z -= width * height * opacity + rotation.w * rotation.z;
@@ -292,11 +275,17 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
     auto* vArray = new Valid[N*4];
     for (size_t i = 0; i < N*4; i++)
         vArray[i].valid = ((rand() % 2) == 0);
-    // TODO: auto* array = new Shape[N*4];  // class DOPShape<T> : public Shape
-    auto* CArray = new DOPShape<Circle>[N];
-    auto* TArray = new DOPShape<Triangle>[N];
-    auto* RArray = new DOPShape<Rectangle>[N];
-    auto* PArray = new DOPShape<Capsule>[N];
+    // TODO:
+    //  // try add an common Abstract Base Class and use runtime type check
+    //  class DOPShapeABC {}
+    //  template<typename T> class DOPShape : public DOPShapeABC { void draw() { static_cast<*T>(this)->draw(); } }
+    //  class DOPCircle : public DOPShape<DOPCircle> { ... }
+    //  auto* array = new DOPShapeABC[N];
+    //
+    auto* CArray = new DOPCircle[N];
+    auto* TArray = new DOPTriangle[N];
+    auto* RArray = new DOPRectangle[N];
+    auto* PArray = new DOPCapsule[N];
     // other data:
     auto* otherDatArray = new OtherData[N * 4];
 
