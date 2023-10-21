@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <vector>
-#include <cassert>
 #include "tick.h"
 
 using namespace std;
@@ -41,7 +40,7 @@ struct OtherData
     Vector3 color;
     Vector3 velocity;
     Vector3 acceleration;
-    Vector3 data[16];  // impulse, torque, angularVelocity, angularAcceleration, ...
+    Vector3 data[4];  // impulse, torque, angularVelocity, angularAcceleration, ...
     float life;
     float decay;
     OtherData* parent;
@@ -220,8 +219,10 @@ inline void draw(DOPShape<T>& shape, CoupledData& data)
 // ===============================================================
 
 
-void DOP2018SubMain(const size_t N, const size_t K=3) {
-    // valid: 50%
+void DOP2018SubMain(const size_t N, const size_t K=5) {
+    Tick tick;
+
+    // ----------------------------- OOP: valid = 50% -----------------------------
     auto** fullArray = new OOPShape *[N * 4];
     auto* OOPFullCircle     = new OOPCircle[N];    size_t c = 0;
     auto* OOPFullTriangle   = new OOPTriangle[N];  size_t t = 0;
@@ -244,8 +245,21 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
         if (rnd == 3) fullArray[j] = &OOPFullCapsule[p++];
         fullArray[j]->valid = ((rand() % 2) == 0);
     }
+    tick.Start(string("OOP-valid=50%"));
+    for (size_t k = 0; k < K; k++) {
+        for (size_t j = 0; j < N * 4; j++) {
+            if (fullArray[j]->valid)
+                fullArray[j]->draw();
+        }
+    }
+    tick.End();
+    delete[] fullArray;
+    delete[] OOPFullCircle;
+    delete[] OOPFullTriangle;
+    delete[] OOPFullRectangle;
+    delete[] OOPFullCapsule;
 
-    // valid: 100%
+    // ----------------------------- OOP-valid: 100% -----------------------------
     auto** validArray = new OOPShape *[N * 4];
     auto* OOPValidCircle    = new OOPCircle[N];    c = 0;
     auto* OOPValidTriangle  = new OOPTriangle[N];  t = 0;
@@ -267,8 +281,22 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
         if (rnd == 3) validArray[i] = &OOPValidCapsule[p++];
         validArray[i]->valid = true;
     }
+    // OOP: always valid
+    tick.Start(string("OOP-valid=100%"));
+    for (size_t k = 0; k < K; k++) {
+        for (size_t j = 0; j < N * 4; j++) {
+            if (validArray[j]->valid)  // always true
+                validArray[j]->draw();
+        }
+    }
+    tick.End(0.5);  // `draw` is called two times, reduce the time
+    delete[] validArray;
+    delete[] OOPValidCircle;
+    delete[] OOPValidTriangle;
+    delete[] OOPValidRectangle;
+    delete[] OOPValidCapsule;
 
-    // DOP-valid: 50%
+    // ----------------------------- DOP: w/o valid bins -----------------------------
     auto* pArray = new Vector3[N*4];
     auto* qArray = new Quaternion[N*4];
     auto* oArray = new Opacity[N*4];
@@ -286,30 +314,8 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
     auto* TArray = new DOPTriangle[N];
     auto* RArray = new DOPRectangle[N];
     auto* PArray = new DOPCapsule[N];
-    // other data:
-    auto* otherDatArray = new OtherData[N * 4];
-
-    Tick tick;
-
-    // OOP: valid = 50%
-    tick.Start(string("OOP-valid=50%"));
-    for (size_t k = 0; k < K; k++) {
-        for (size_t j = 0; j < N * 4; j++) {
-            if (fullArray[j]->valid)
-                fullArray[j]->draw();
-        }
-    }
-    tick.End();
-
-    // OOP: always valid
-    tick.Start(string("OOP-valid=100%"));
-    for (size_t k = 0; k < K; k++) {
-        for (size_t j = 0; j < N * 4; j++) {
-            if (validArray[j]->valid)  // always true
-                validArray[j]->draw();
-        }
-    }
-    tick.End(0.5);  // `draw` is called two times, reduce the time
+//    // other data:
+//    auto* otherDatArray = new OtherData[N * 4];
 
     // DOP: no valid bins
     tick.Start(string("DOP-w/o_valid_bins(valid=50%)"));
@@ -347,8 +353,24 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
         }
     }
     tick.End();
+    delete[] pArray;  // pArray = nullptr;
+    delete[] qArray;  // qArray = nullptr;
+    delete[] oArray;  // oArray = nullptr;
+    delete[] vArray;  // vArray = nullptr;
+    delete[] CArray;  // CArray = nullptr;
+    delete[] TArray;  // TArray = nullptr;
+    delete[] RArray;  // RArray = nullptr;
+    delete[] PArray;  // PArray = nullptr;
 
-    // DOP: valid bins
+    // ----------------------------- DOP: w. valid bins -----------------------------
+    pArray = new Vector3[N*4];
+    qArray = new Quaternion[N*4];
+    oArray = new Opacity[N*4];
+    vArray = new Valid[N*4];  // half valid, half invalid
+    CArray = new DOPCircle[N];
+    TArray = new DOPTriangle[N];
+    RArray = new DOPRectangle[N];
+    PArray = new DOPCapsule[N];
     tick.Start(string("DOP-w._valid_bins"));
     for (size_t k = 0; k < K; k++) {
         // register CoupledData data;
@@ -381,6 +403,14 @@ void DOP2018SubMain(const size_t N, const size_t K=3) {
         }
     }
     tick.End();
+    delete[] pArray;
+    delete[] qArray;
+    delete[] oArray;
+    delete[] vArray;
+    delete[] CArray;
+    delete[] TArray;
+    delete[] RArray;
+    delete[] PArray;
 }
 
 void DOP2018Main() {
@@ -403,11 +433,11 @@ void DOP2018Main() {
     cout << endl;
 
     //    vector<size_t> size = { 1024, 2048, 4096, 10240, 20480 };
-    vector<size_t> size = { 256000*2,
-                            256000*3,
-                            256000*4,
-                            256000*5,
-                            256000*6, };
+    vector<size_t> size = { 1024000*1,
+                            1024000*2,
+                            1024000*3,
+                            1024000*4,
+                            1024000*5, };
 
     for (auto& N : size) {
         cout << " ======== " << N << " ======== " << endl;
